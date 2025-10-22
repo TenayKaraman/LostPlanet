@@ -37,34 +37,36 @@ namespace LostPlanet.Managers
         /// <summary> Kaydedilmiþ veriden can ve refill saatini yükler; geçmiþ zamaný telafi eder; UI’yý günceller. </summary>
         public void InitFromSave()
         {
-            // 1) Ýlk kez çalýþýyorsa caný max yap
-            if (save != null && save.HasKey("life"))
+            if (!save) save = FindObjectOfType<LostPlanet.Core.SaveManager>();
+            if (!ui) ui = FindObjectOfType<LostPlanet.Core.UIManager>();
+
+            // Ýlk kurulum: eðer hiç kayýt yoksa max’tan baþla
+            int loaded = save != null ? save.LoadInt("life", -1) : -1;
+            if (loaded < 0)
             {
-                current = save.LoadInt("life", max); // daha önce ne kaydedildiyse onu al
+                current = max;
+                // ilk kez baþlarken refill sayacý þimdiye kurulsun
+                nextRefillUtc = DateTime.UtcNow.AddMinutes(refillMinutes);
+                SaveAll();
             }
             else
             {
-                current = max;                       // ÝLK KURULUM: full can
-                SaveAll();
+                current = Mathf.Clamp(loaded, 0, max);
+
+                // kayýtlý refill zamaný
+                string ticksStr = save.LoadString("nextRefillUtc", DateTime.UtcNow.Ticks.ToString());
+                long ticks;
+                if (!long.TryParse(ticksStr, out ticks)) ticks = DateTime.UtcNow.Ticks;
+                nextRefillUtc = new DateTime(ticks, DateTimeKind.Utc);
+
+                // geçen süreye göre doldur
+                RefillByElapsedTime(true);
             }
 
-            // 2) Refill zamanýný oku veya baþlat
-            if (save != null && save.HasKey("nextRefillUtc"))
-            {
-                var ticksStr = save.LoadString("nextRefillUtc", "0");
-                long ticks; if (!long.TryParse(ticksStr, out ticks)) ticks = 0;
-                nextRefillUtc = ticks > 0 ? new DateTime(ticks, DateTimeKind.Utc) : DateTime.UtcNow;
-            }
-            else
-            {
-                nextRefillUtc = DateTime.UtcNow;
-                SaveAll();
-            }
-
-            // 3) Geçmiþ süreye göre telafi + UI
-            RefillByElapsedTime();
-            GameManager.Instance?.UIManager?.UpdateLifeUI(current, max);
+            // UI’ý anýnda güncelle
+            ui?.UpdateLifeUI(current, max);
         }
+
 
 
         void SaveAll()
@@ -90,35 +92,21 @@ namespace LostPlanet.Managers
             var now = DateTime.UtcNow;
             bool changed = false;
 
-            if (current < max)
+            while (now >= nextRefillUtc && current < max)
             {
-                // Elapsed refill’leri tek seferde uygula
-                while (now >= nextRefillUtc)
-                {
-                    current++;
-                    changed = true;
-                    if (current >= max) break;
-                    nextRefillUtc = nextRefillUtc.AddMinutes(refillMinutes);
-                }
-
-                if (current >= max)
-                {
-                    // Full oldu, sayacý durdur
-                    nextRefillUtc = now;
-                }
+                current++;
+                nextRefillUtc = nextRefillUtc.AddMinutes(refillMinutes);
+                changed = true;
             }
-            else
-            {
-                // Zaten full; sayacý beklet
-                nextRefillUtc = now;
-            }
+            if (current >= max) nextRefillUtc = now;
 
             if (changed || forceUI)
             {
-                (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeUI(current, max);
                 SaveAll();
+                ui?.UpdateLifeUI(current, max);
             }
         }
+
 
         public bool CanConsume(int n = 1) => current >= n;
 

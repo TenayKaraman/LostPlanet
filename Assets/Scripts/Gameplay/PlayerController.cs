@@ -11,7 +11,7 @@ namespace LostPlanet.Gameplay
         public float stepDuration = 0.15f;
         public Vector2Int MoveDir = Vector2Int.zero;
         public bool IsSliding { get; private set; } = false;
-
+        private bool _isDead = false;
         public System.Action OnMovedStep;
         public System.Action OnSlideStart;
         public System.Action OnSlideStop;
@@ -80,8 +80,22 @@ namespace LostPlanet.Gameplay
 
         void Die()
         {
+            if (_isDead) return;                 // <<< tekrar engeli
+            _isDead = true;
+
+            // Hareketi tamamen durdur
+            MoveDir = Vector2Int.zero;
+            IsSliding = false;
+            OnSlideStop?.Invoke();
             StopAllCoroutines();
-            if (GameManager.Instance != null) GameManager.Instance.OnPlayerDeath();
+
+            // Ýsteðe baðlý: çakýþma tekrarlarýný kesmek için collider’ý kapatabilirsin
+            var col = GetComponent<Collider2D>();
+            if (col) col.enabled = false;
+
+            // Oyun yöneticisine bildir
+            if (GameManager.Instance != null)
+                GameManager.Instance.OnPlayerDeath();
         }
 
         private ProbeResult Probe(Vector2Int c)
