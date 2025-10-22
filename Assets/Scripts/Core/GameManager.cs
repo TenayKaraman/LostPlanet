@@ -114,6 +114,10 @@ namespace LostPlanet.Core
 
         public void StartLevel(int levelId)
         {
+            // Her yeni seviye baþlangýcýnda dünyayý aç
+            Time.timeScale = 1f;
+            Physics2D.simulationMode = SimulationMode2D.FixedUpdate;
+
             StartCoroutine(CoStartLevel(levelId));
         }
 
@@ -156,6 +160,7 @@ namespace LostPlanet.Core
         {
             if (State != GameState.Playing) return;
             Time.timeScale = 0f;
+            Physics2D.simulationMode = SimulationMode2D.Script;
             SetState(GameState.Paused);
             UIManager?.ShowPause();
         }
@@ -164,9 +169,11 @@ namespace LostPlanet.Core
         {
             if (State != GameState.Paused) return;
             Time.timeScale = 1f;
+            Physics2D.simulationMode = SimulationMode2D.FixedUpdate;
             SetState(GameState.Playing);
             UIManager?.HidePause();
         }
+
 
         public void RestartLevel()
         {
@@ -178,21 +185,31 @@ namespace LostPlanet.Core
 
         public void OnLevelComplete()
         {
-            // Donuk kalsýn (butonlar basýlamasýn, hareket olmasýn)
+            // Donuk kalsýn
             Time.timeScale = 0f;
+            Physics2D.simulationMode = SimulationMode2D.Script;
 
             SetState(GameState.LevelComplete);
             SaveManager?.MarkCompleted(CurrentLevelId);
             UIManager?.ShowLevelComplete();
 
-            // (Ýstersen) slot butonlarýný pasifle:
-            // UIManager?.SetSlotsInteractable(false); // UIManager'da bu yardýmcý varsa
+            // Ýstersen slot butonlarýný pasifle:
+            // UIManager?.SetSlotsInteractable(false);
         }
+
 
 
         public void OnPlayerDeath()
         {
+            // Ayný ölümün birden fazla kez iþlenmesini engelle
+            if (State == GameState.GameOver) return;
+
             SetState(GameState.GameOver);
+
+            // Dünya dursun ki yeni çarpýþmalar/AI akmasýn (can tekrar eksilmesin)
+            Time.timeScale = 0f;
+            Physics2D.simulationMode = SimulationMode2D.Script;
+
             if (LifeManager != null && LifeManager.CanConsume(1))
             {
                 LifeManager.Consume(1);
@@ -203,6 +220,7 @@ namespace LostPlanet.Core
                 UIManager?.ShowNoLifeOptions();
             }
         }
+
 
         // ---------- Fade'li level geçiþi (Portal vb. için) ----------
         public void LoadNextLevelWithFade(float fadeDuration = 0.5f)

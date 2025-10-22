@@ -59,21 +59,28 @@ namespace LostPlanet.Items
 
         System.Collections.IEnumerator CoCompleteSequence()
         {
-            // 1) Dünya donsun (Update/Coroutines WaitForSeconds durur)
+            // 1) Dünya kesin dursun: state, zaman ve fizik
             _gm.SetState(LostPlanet.Core.GameState.LevelComplete);
             Time.timeScale = 0f;
+            Physics2D.simulationMode = SimulationMode2D.Script; // 2D fizik stop
 
-            // 2) Kısa fade ile sahneyi karart (varsa)
+            // DOTween kullanıyorsan (UpdateType=Normal) hepsini durdur (opsiyonel):
+            // #define DOTWEEN_EXISTS
+            // #if DOTWEEN_EXISTS
+            // DG.Tweening.DOTween.PauseAll();
+            // #endif
+
+            // 2) Kısa fade (varsa)
             if (_fader != null)
-                yield return _fader.FadeTo(0.6f, 0.35f); // %60 karart, 0.35 sn
+                yield return _fader.FadeTo(0.6f, 0.35f);
             else
                 yield return null;
 
             // 3) LevelComplete ekranı
             _gm.OnLevelComplete();
-            // Not: OnLevelComplete içinde tekrar State set ediliyor; sorun değil.
-            // Donuk kalmasını istediğimiz için burada timeScale'i açmıyoruz.
+            // Not: Donuk kalması isteniyor → burada hiçbir şeyi "açmıyoruz".
         }
+
 
         void OnTriggerEnter2D(Collider2D other)
         {
