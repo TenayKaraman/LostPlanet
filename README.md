@@ -110,3 +110,12 @@ Hızlı Kontrol Listesi
 - [ ] Portal → Freeze + (fade) + LevelComplete
 - [ ] NOS sadece Playing’de dolar
 - [ ] PR’lar küçük ve tek konulu
+## Development Checklist
+
+- [ ] Input System aktif
+- [ ] Canvas Scaler doğru (Scale With Screen Size)
+- [ ] Grid 9×16 (portrait)
+- [ ] Crystal → Portal otomatik aktif
+- [ ] Portal → Freeze + (fade) + LevelComplete
+- [ ] NOS sadece Playing’de dolar
+- [ ] PR’lar küçük ve tek konulu
