@@ -1,0 +1,50 @@
+# --- Unity standard ignores ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild*/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+Assets/AssetStoreTools*
+*.UnityPackageManager
+
+# --- IDE / tooling ---
+.vs/
+.vscode/
+*.code-workspace
+*.sln
+*.csproj
+*.pidb
+*.suo
+*.user
+*.userprefs
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# --- OS / misc ---
+.DS_Store
+Thumbs.db
+
+# --- Crash / profiler ---
+sysinfo.txt
+
+# --- Addressables / Generated ---
+/Assets/AddressableAssetsData/*
+!/Assets/AddressableAssetsData/*.asset
+!/Assets/AddressableAssetsData/*.json
+
+# --- Rider ---
+.idea/
+
+# --- TextMesh Pro generated (keep meta) ---
+/Assets/TextMesh Pro/**/Resources/*.asset
+
+# --- Do not ignore meta files ---
+!*.meta
+
+# --- Optional: exclude local builds/exports ---
+/Build/
