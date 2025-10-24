@@ -68,7 +68,76 @@ namespace LostPlanet.Core
         // ---------- TopBar API ----------
         public void SetLevelName(string name)
         {
+<<<<<<< Updated upstream
             if (levelNameText) levelNameText.text = name;
+=======
+            ShowHUD(true);
+            HideAllOverlays();
+        }
+
+        public void ShowMainMenu()
+        {
+            ShowHUD(false);
+            HideAllOverlays();
+            if (panelMainMenu) panelMainMenu.SetActive(true);
+        }
+
+        public void ShowPause()
+        {
+            
+            if (panelPause) panelPause.SetActive(true);
+            SetSlotsInteractable(false);   // yetenek butonlarÄ±nÄ± kilitle
+            SetNOSInteractable(false);     // NOS butonunu kilitle
+        }
+
+        public void HidePause()
+        {
+            if (panelPause) panelPause.SetActive(false);
+            SetSlotsInteractable(true);    // tekrar aÃ§
+                                           // NOS'u oyuncu hazÄ±r olduÄŸunda PlayerNOS zaten kapatÄ±p aÃ§Ä±yor; burada aÃ§mamÄ±z sorun olmaz:
+            SetNOSInteractable(true);
+        }
+
+        public void ShowLevelComplete()
+        {
+            ShowHUD(false);
+            HideAllOverlays();
+            if (panelLevelComplete) panelLevelComplete.SetActive(true);
+        }
+
+        public void ShowRetry()
+        {
+            ShowHUD(false);
+            HideAllOverlays();
+            if (panelRetry) panelRetry.SetActive(true);
+            var lm = LostPlanet.Core.GameManager.Instance?.LifeManager;
+            lm?.RefillByElapsedTime(true);
+        }
+
+        public void ShowNoLifeOptions()
+        {
+            // AyrÄ± ekranÄ±n yoksa Retry panelini kullan
+            ShowRetry();
+        }
+
+        void HideAllOverlays()
+        {
+            if (panelMainMenu) panelMainMenu.SetActive(false);
+            if (panelPause) panelPause.SetActive(false);
+            if (panelRetry) panelRetry.SetActive(false);
+            if (panelLevelComplete) panelLevelComplete.SetActive(false);
+        }
+
+        void ShowHUD(bool on)
+        {
+            if (hudRoot) hudRoot.SetActive(on);
+        }
+
+        // ---------- TopBar Helpers ----------
+        public void SetLevelName(string txt)
+        {
+            if (levelNameText) levelNameText.text = txt;
+>>>>>>> Stashed changes
         }
 
         // id paramý ileride çoklu kristal türü olursa iþine yarar; þimdilik kullanmýyoruz
