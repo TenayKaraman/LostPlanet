@@ -2,6 +2,8 @@ using UnityEngine;
 using System.Collections;
 using LostPlanet.ScriptableObjects;
 using LostPlanet.Core;
+using UInput = UnityEngine.Input;
+
 using DG.Tweening; // DOTween punch/flash için
 
 namespace LostPlanet.Gameplay

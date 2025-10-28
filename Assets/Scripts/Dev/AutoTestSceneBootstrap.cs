@@ -1,4 +1,6 @@
 using UnityEngine;
+using UInput = UnityEngine.Input;
+
 using LostPlanet.Core;
 using LostPlanet.GridSystem;
 using LostPlanet.Gameplay;
@@ -76,14 +78,32 @@ namespace LostPlanet.Dev
 
             // --------- PLAYER PREFAB (template) ----------
             if (!playerPrefab) playerPrefab = BuildRuntimePlayerPrefab();
+
+            // GameManager, spawn için asset referansını kullanacak
             gm.PlayerPrefab = playerPrefab;
 
+            // (İsteğe bağlı) sahnede bir "Template" kopyası göstermek istiyorsak:
+            // Asset ise Instantiate et; sahne objesi ise direkt kullan.
             var templatesRoot = new GameObject("Templates").transform;
             templatesRoot.SetParent(root, false);
-            playerPrefab.name = "PlayerTemplate";
-            playerPrefab.transform.SetParent(templatesRoot, false);
-            playerPrefab.SetActive(false);
-            playerPrefab.hideFlags = HideFlags.HideInHierarchy;
+
+            GameObject templateInstance;
+            if (playerPrefab.scene.IsValid())
+            {
+                // Bu zaten sahne objesi (ör. BuildRuntimePlayerPrefab ile oluşturulmuş)
+                templateInstance = playerPrefab;
+            }
+            else
+            {
+                // Bu bir Prefab asset; sahneye KOPYASINI al
+                templateInstance = Instantiate(playerPrefab);
+            }
+
+            templateInstance.name = "PlayerTemplate";
+            templateInstance.transform.SetParent(templatesRoot, false);
+            templateInstance.SetActive(false);
+            templateInstance.hideFlags = HideFlags.HideInHierarchy;
+
 
             // Spawn marker (dünya 0,0 merkez)
             var sp = new GameObject("PlayerSpawn");

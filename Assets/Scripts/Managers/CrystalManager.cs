@@ -1,6 +1,8 @@
 
 using UnityEngine;
 using LostPlanet.Items;
+using UInput = UnityEngine.Input;
+
 namespace LostPlanet.Managers
 {
     public class CrystalManager : MonoBehaviour

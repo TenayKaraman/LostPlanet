@@ -28,6 +28,7 @@ namespace LostPlanet.Gameplay
                 _pc.OnSlideStop += OnSlideStop;
             }
             LostPlanet.Input.InputManager.OnSuperPressed += TryActivate;
+
         }
 
         void OnDisable()

@@ -12,8 +12,8 @@ namespace LostPlanet.Managers
         public int max = 5;
 
         [Header("Refill")]
-        public int refillMinutes = 30;        // 1 can / 30 dk
-        [SerializeField] long nextRefillUtcTicks; // Inspector’da görmek istersen
+        public int refillMinutes = 30;            // 1 can / 30 dk
+        [SerializeField] long nextRefillUtcTicks; // Inspector'da görmek istersen
 
         DateTime nextRefillUtc;
 
@@ -29,12 +29,15 @@ namespace LostPlanet.Managers
 
         void Start()
         {
-            InitFromSave();            // ilk yükleme
+            InitFromSave();             // ilk yükleme
             StopAllCoroutines();
-            StartCoroutine(CoRefillTick()); // arkaplanda dakika sayacý
+            StartCoroutine(CoRefillTick()); // arkaplanda saniyelik tick
+            UpdateRefillTimerUI();      // ekrana ilk anda yansýsýn
         }
 
-        /// <summary> Kaydedilmiþ veriden can ve refill saatini yükler; geçmiþ zamaný telafi eder; UI’yý günceller. </summary>
+        /// <summary>
+        /// Kaydedilmiþ veriden can ve refill saatini yükler; geçmiþ zamaný telafi eder; UI’yi günceller.
+        /// </summary>
         public void InitFromSave()
         {
             if (!save) save = FindObjectOfType<LostPlanet.Core.SaveManager>();
@@ -45,7 +48,7 @@ namespace LostPlanet.Managers
             if (loaded < 0)
             {
                 current = max;
-                // ilk kez baþlarken refill sayacý þimdiye kurulsun
+                // ilk kez baþlarken refill sayacý ileriye kurulsun
                 nextRefillUtc = DateTime.UtcNow.AddMinutes(refillMinutes);
                 SaveAll();
             }
@@ -63,11 +66,10 @@ namespace LostPlanet.Managers
                 RefillByElapsedTime(true);
             }
 
-            // UI’ý anýnda güncelle
+            // UI’yi anýnda güncelle
             ui?.UpdateLifeUI(current, max);
+            UpdateRefillTimerUI();
         }
-
-
 
         void SaveAll()
         {
@@ -81,12 +83,13 @@ namespace LostPlanet.Managers
             var wait = new WaitForSeconds(1f);
             while (true)
             {
-                RefillByElapsedTime(forceUI: false);
+                RefillByElapsedTime(forceUI: false); // can dolmuþsa gerektiðinde artýr
+                UpdateRefillTimerUI();               // her saniye geri sayýmý yazdýr
                 yield return wait;
             }
         }
 
-        /// <summary> Þu ana kadar geçen süreye göre refill uygular. </summary>
+        /// <summary>Þu ana kadar geçen süreye göre refill uygular.</summary>
         public void RefillByElapsedTime(bool forceUI = false)
         {
             var now = DateTime.UtcNow;
@@ -98,19 +101,23 @@ namespace LostPlanet.Managers
                 nextRefillUtc = nextRefillUtc.AddMinutes(refillMinutes);
                 changed = true;
             }
-            if (current >= max) nextRefillUtc = now;
+
+            if (current >= max)
+                nextRefillUtc = now;
 
             if (changed || forceUI)
             {
                 SaveAll();
                 ui?.UpdateLifeUI(current, max);
             }
-        }
 
+            // Geri sayým metnini de güncelle
+            UpdateRefillTimerUI();
+        }
 
         public bool CanConsume(int n = 1) => current >= n;
 
-        /// <summary> n adet can harcar; gerekirse refill sayacýný baþlatýr; UI’yý günceller. </summary>
+        /// <summary>n adet can harcar; gerekirse refill sayacýný baþlatýr; UI’yi günceller.</summary>
         public bool Consume(int n = 1)
         {
             if (!CanConsume(n)) return false;
@@ -126,6 +133,7 @@ namespace LostPlanet.Managers
 
             (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeUI(current, max);
             SaveAll();
+            UpdateRefillTimerUI();
             return true;
         }
 
@@ -135,9 +143,10 @@ namespace LostPlanet.Managers
             (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeUI(current, max);
 
             if (current >= max)
-                nextRefillUtc = DateTime.UtcNow; // tamamsa sayacý beklet
+                nextRefillUtc = DateTime.UtcNow; // tamamsa sayaç beklesin
 
             SaveAll();
+            UpdateRefillTimerUI();
         }
 
         public void SetMax(int newMax, bool refill = true)
@@ -146,16 +155,49 @@ namespace LostPlanet.Managers
             if (refill) current = max;
             (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeUI(current, max);
             SaveAll();
+            UpdateRefillTimerUI();
         }
 
         void OnApplicationFocus(bool focus)
         {
-            if (focus) RefillByElapsedTime(forceUI: true);
+            if (focus)
+            {
+                RefillByElapsedTime(forceUI: true);
+                // UpdateRefillTimerUI() zaten RefillByElapsedTime içinde çaðrýlýyor
+            }
         }
 
         void OnApplicationPause(bool pause)
         {
-            if (!pause) RefillByElapsedTime(forceUI: true);
+            if (!pause)
+            {
+                RefillByElapsedTime(forceUI: true);
+            }
+        }
+
+        // -------------------- Helpers --------------------
+
+        void UpdateRefillTimerUI()
+        {
+            // Canlar doluysa geri sayýmý gizle
+            if (current >= max)
+            {
+                (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeRefillTimer(string.Empty);
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            var remaining = nextRefillUtc - now;
+
+            if (remaining.TotalSeconds <= 0)
+            {
+                (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeRefillTimer("00:00");
+                return;
+            }
+
+            int minutes = Mathf.FloorToInt((float)remaining.TotalMinutes);
+            int seconds = Mathf.FloorToInt((float)remaining.Seconds);
+            (ui ?? GameManager.Instance?.UIManager)?.UpdateLifeRefillTimer($"{minutes:00}:{seconds:00}");
         }
     }
 }

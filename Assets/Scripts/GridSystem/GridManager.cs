@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UInput = UnityEngine.Input;
 
 namespace LostPlanet.GridSystem
 {

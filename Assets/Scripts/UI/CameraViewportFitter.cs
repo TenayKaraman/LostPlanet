@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using LostPlanet.GridSystem;
+using UInput = UnityEngine.Input;
+
 
 /// Main Camera'ya tak. TopBar / AbilityBar atanmadýysa isimden bulur.
 /// GridManager runtime oluþsa bile kendini otomatik bulur.

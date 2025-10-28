@@ -1,76 +1,66 @@
 using UnityEngine;
 using UnityEngine.UI;
-// Eðer TextMeshPro kullanýyorsan bu satýrý aç:
+using UInput = UnityEngine.Input;
+
 using TMPro;
+#if DOTWEEN_EXISTS
+using DG.Tweening;
+#endif
 
 namespace LostPlanet.Core
 {
+    /// <summary>
+    /// Oyun içi HUD ve panellerin tek elden kontrolü.
+    /// Inspector üzerinden referanslarý atayýn.
+    /// </summary>
+    [DisallowMultipleComponent]
     public class UIManager : MonoBehaviour
     {
-        [Header("Ability Slot UI (assign in scene)")]
-        public Image[] slotIcons = new Image[3];
-        public Image[] slotCooldown = new Image[3]; // Type=Filled, Radial360
-
-        [Header("Optional Icon Registry")]
+        [Header("Ability Slot UI")]
+        public Image[] slotIcons = new Image[3];        // ikon görseli
+        public Image[] slotCooldown = new Image[3];     // Type=Filled, FillMethod=Radial360
         public LostPlanet.UI.AbilityIconRegistry iconRegistry;
 
-        [Header("Optional Buttons (assign in scene)")]
-        public Button[] slotButtons = new Button[3]; // atanmasa da çalýþýr
+        [Header("HUD Roots / Panels")]
+        public GameObject hudRoot;
+        public GameObject panelMainMenu;
+        public GameObject panelPause;
+        public GameObject panelRetry;
+        public GameObject panelLevelComplete;
 
-        [Header("TopBar References")]
-        public Image crystalIcon;
-        public TMP_Text crystalText;      // ör: "0 / 3"
-        public TMP_Text levelNameText;    // ör: "Level 1"
-        public Image heartIcon;
-        public TMP_Text lifeText;         // ör: "x 3"
-        public Slider nosSlider;          // 0..1
+        [Header("TopBar (TMP)")]
+        public TMP_Text levelNameText;
+        public TMP_Text crystalCounterText;
+        public TMP_Text lifeText;
+        public TMP_Text lifeRefillTimerText; // TopBar'da göstermek istersen
 
-        [Header("Colors")]
-        public Color filledColor = Color.white;
-        public Color emptyColor = new Color(1f, 1f, 1f, 0.25f);
+        [Header("NOS (optional)")]
+        public Slider nosSlider;
+        public Button nosButton;
 
-        void Awake()
-        {
-            Init(); // slotlarý ve topbar'ý güvenli baþlat
-        }
+        [Header("Ability Buttons (optional)")]
+        public Button[] slotButtons = new Button[3];
 
-        // ---------- Lifecycle / Screens (placeholder) ----------
+        [Header("Retry Panel (TMP, optional)")]
+        public TMP_Text retryLifeText;                 // Panel_Retry içindeki can metni (opsiyonel)
+        public TMP_Text retryLifeRefillTimerText;     // Panel_Retry içindeki sayaç metni (mm:ss)
+
+        [Header("Level Complete (TMP, optional)")]
+        public TMP_Text lcCrystalText;   // "Kristal: x/y"
+        public TMP_Text lcTimeText;      // "Süre: mm:ss"
+
+        // ---------- Boot / HUD ----------
+        /// <summary>HUD varsayýlaný aç, panelleri kapat, buton etkileþimlerini ayarla.</summary>
         public void Init()
         {
-            // Ability slotlarý boþ görünümle baþlat
-            for (int i = 0; i < 3; i++)
-            {
-                ClearAbilitySlot(i);
-                SetSlotCooldown01(i, 0f);
-            }
-
-            // TopBar baþlangýç deðerleri
-            if (levelNameText) levelNameText.text = "";
-            if (crystalText) crystalText.text = "0 / 0";
-            if (lifeText) lifeText.text = "x 0";
-            if (nosSlider)
-            {
-                nosSlider.minValue = 0f;
-                nosSlider.maxValue = 1f;
-                nosSlider.value = 0f;
-                nosSlider.interactable = false; // sadece gösterge
-            }
+            ShowHUD(true);
+            HideAllOverlays();
+            SetNOSInteractable(false);     // Baþlangýçta kilitli; PlayerNOS hazýr olduðunda açar.
+            SetSlotsInteractable(true);
         }
 
-        public void BindLevelHUD() { }
-        public void ShowMainMenu() { }
-        public void ShowPause() { }
-        public void HidePause() { }
-        public void ShowLevelComplete() { }
-        public void ShowRetry() { }
-        public void ShowNoLifeOptions() { }
-
-        // ---------- TopBar API ----------
-        public void SetLevelName(string name)
+        public void BindLevelHUD()
         {
-<<<<<<< Updated upstream
-            if (levelNameText) levelNameText.text = name;
-=======
             ShowHUD(true);
             HideAllOverlays();
         }
@@ -84,17 +74,15 @@ namespace LostPlanet.Core
 
         public void ShowPause()
         {
-            
             if (panelPause) panelPause.SetActive(true);
-            SetSlotsInteractable(false);   // yetenek butonlarÄ±nÄ± kilitle
-            SetNOSInteractable(false);     // NOS butonunu kilitle
+            SetSlotsInteractable(false);
+            SetNOSInteractable(false);
         }
 
         public void HidePause()
         {
             if (panelPause) panelPause.SetActive(false);
-            SetSlotsInteractable(true);    // tekrar aÃ§
-                                           // NOS'u oyuncu hazÄ±r olduÄŸunda PlayerNOS zaten kapatÄ±p aÃ§Ä±yor; burada aÃ§mamÄ±z sorun olmaz:
+            SetSlotsInteractable(true);
             SetNOSInteractable(true);
         }
 
@@ -110,13 +98,15 @@ namespace LostPlanet.Core
             ShowHUD(false);
             HideAllOverlays();
             if (panelRetry) panelRetry.SetActive(true);
+
+            // Panel açýlýr açýlmaz: kaydý güncelle ve sayaçlarý tazele
             var lm = LostPlanet.Core.GameManager.Instance?.LifeManager;
             lm?.RefillByElapsedTime(true);
         }
 
         public void ShowNoLifeOptions()
         {
-            // AyrÄ± ekranÄ±n yoksa Retry panelini kullan
+            // Ayrý bir ekran yoksa Retry panelini kullan
             ShowRetry();
         }
 
@@ -137,96 +127,123 @@ namespace LostPlanet.Core
         public void SetLevelName(string txt)
         {
             if (levelNameText) levelNameText.text = txt;
->>>>>>> Stashed changes
         }
 
-        // id paramý ileride çoklu kristal türü olursa iþine yarar; þimdilik kullanmýyoruz
         public void UpdateCrystalUI(string id, int collected, int required)
         {
-            if (crystalText) crystalText.text = $"{collected} / {required}";
+            if (!crystalCounterText) return;
+            crystalCounterText.text = $"{collected}/{required}";
         }
 
         public void UpdateLifeUI(int current, int max)
         {
-            // Ýstenilen biçim: Kalp ikonu + yanýnda sayý
-            if (lifeText) lifeText.text = $"x {current}";
+            if (lifeText) lifeText.text = $"{current}/{max}";
+            if (retryLifeText) retryLifeText.text = $"{current}/{max}";
         }
 
+        /// <summary>mm:ss stringi ver; hem Retry hem TopBar sayaçlarýný yönetir.</summary>
+        public void UpdateLifeRefillTimer(string s)
+        {
+            bool show = !string.IsNullOrEmpty(s);
+
+            // Retry panelindeki sayaç
+            if (retryLifeRefillTimerText)
+            {
+                retryLifeRefillTimerText.text = show ? s : "";
+                retryLifeRefillTimerText.enabled = show;
+            }
+
+            // TopBar (opsiyonel)
+            if (lifeRefillTimerText)
+            {
+                lifeRefillTimerText.text = show ? s : "";
+                lifeRefillTimerText.enabled = show;
+            }
+        }
+
+        // ---------- NOS ----------
         public void UpdateNOSBar(float v01)
         {
-            if (nosSlider) nosSlider.value = Mathf.Clamp01(v01);
+            if (nosSlider) nosSlider.normalizedValue = Mathf.Clamp01(v01);
         }
 
-        // NOS hazýr olunca (örn. %100) etkileþim açmak istersen burada tetikle
         public void SetNOSInteractable(bool on)
         {
-            // Slider sadece gösterge; buton kullanýyorsan orada aç/kapat.
-            // Yine de istersen slider'ý görsel olarak vurgulayabilirsin.
-            // (Boþ býrakýlmasý sorun deðil.)
+            if (nosButton) nosButton.interactable = on;
         }
 
         public void PulseNOS()
         {
-            // DOTween ile kýsa bir vurgulama (opsiyonel)
-            // if (nosSlider) nosSlider.transform.DOPunchScale(Vector3.one * 0.08f, 0.2f, 6, 0.8f);
+#if DOTWEEN_EXISTS
+            if (nosButton)
+            {
+                var t = nosButton.transform;
+                t.DOKill();
+                t.DOPunchScale(Vector3.one * 0.08f, 0.25f, 6, 0.8f);
+            }
+#endif
         }
 
         // ---------- Ability Slots ----------
-        // abilityIdOrNull null/empty ise slotu temizler; doluysa ikon ve etkileþim açýlýr
         public void SetAbilitySlot(int index, string abilityIdOrNull)
         {
             if (index < 0 || index >= 3) return;
+            var icon = slotIcons[index];
+            if (!icon) return;
 
             if (string.IsNullOrEmpty(abilityIdOrNull))
             {
-                ClearAbilitySlot(index);
-                return;
+                if (iconRegistry && iconRegistry.placeholder) icon.sprite = iconRegistry.placeholder;
+                icon.color = new Color(1, 1, 1, 0.25f);
             }
-
-            var icon = slotIcons != null && index < slotIcons.Length ? slotIcons[index] : null;
-            if (!icon) return;
-
-            Sprite s = iconRegistry ? iconRegistry.GetSprite(abilityIdOrNull) : null;
-            if (!s && iconRegistry) s = iconRegistry.placeholder;
-
-            icon.sprite = s;
-            icon.color = filledColor;
-
-            if (slotButtons != null && index < slotButtons.Length && slotButtons[index])
-                slotButtons[index].interactable = true;
+            else
+            {
+                var s = iconRegistry ? iconRegistry.GetSprite(abilityIdOrNull) : null;
+                if (s) icon.sprite = s;
+                icon.color = Color.white;
+            }
         }
 
-        // AbilityInventory tarafýndan boþaltma/temizleme için çaðrýlýr
         public void ClearAbilitySlot(int index)
         {
             if (index < 0 || index >= 3) return;
+            var icon = slotIcons[index];
+            if (!icon) return;
 
-            var icon = slotIcons != null && index < slotIcons.Length ? slotIcons[index] : null;
-            if (icon)
-            {
-                icon.sprite = iconRegistry ? iconRegistry.placeholder : null;
-                icon.color = emptyColor;
-            }
-
-            if (slotButtons != null && index < slotButtons.Length && slotButtons[index])
-                slotButtons[index].interactable = false;
-
-            if (slotCooldown != null && index < slotCooldown.Length && slotCooldown[index])
-            {
-                slotCooldown[index].fillAmount = 0f;
-                slotCooldown[index].enabled = false;
-            }
+            if (iconRegistry && iconRegistry.placeholder) icon.sprite = iconRegistry.placeholder;
+            icon.color = new Color(1, 1, 1, 0.25f);
         }
 
-        // 0..1 arasý cooldown overlay
         public void SetSlotCooldown01(int index, float v01)
         {
             if (index < 0 || index >= 3) return;
-            var img = slotCooldown != null && index < slotCooldown.Length ? slotCooldown[index] : null;
+            var img = slotCooldown[index];
             if (!img) return;
 
             img.fillAmount = Mathf.Clamp01(v01);
             img.enabled = v01 > 0f && v01 < 1f;
+        }
+
+        public void SetSlotsInteractable(bool on)
+        {
+            if (slotButtons == null) return;
+            for (int i = 0; i < slotButtons.Length; i++)
+                if (slotButtons[i]) slotButtons[i].interactable = on;
+        }
+
+        // ---------- Level Complete ----------
+        public void UpdateLevelComplete(int collected, int required, float seconds)
+        {
+            if (lcCrystalText) lcCrystalText.text = $"Kristal: {collected}/{required}";
+            if (lcTimeText) lcTimeText.text = $"Süre: {FormatTime(seconds)}";
+        }
+
+        string FormatTime(float sec)
+        {
+            if (sec < 0) sec = 0;
+            int m = Mathf.FloorToInt(sec / 60f);
+            int s = Mathf.FloorToInt(sec % 60f);
+            return $"{m:00}:{s:00}";
         }
     }
 }
