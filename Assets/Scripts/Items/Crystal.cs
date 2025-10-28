@@ -8,7 +8,7 @@ namespace LostPlanet.Items
         // DIŞARIDAN çağrılabilen güvenli toplama metodu
         public void Collect()
         {
-            var grid = FindObjectOfType<LostPlanet.GridSystem.GridManager>();
+            var grid = LostPlanet.Core.Services.Grid;
             if (grid != null)
             {
                 var cell = grid.WorldToGrid(transform.position);
@@ -16,7 +16,7 @@ namespace LostPlanet.Items
                     grid.SetOccupant(cell, null);
             }
 
-            var cm = FindObjectOfType<LostPlanet.Managers.CrystalManager>();
+            var cm = LostPlanet.Core.Services.Crystal;
             cm?.CollectOne();
             Destroy(gameObject);
         }
