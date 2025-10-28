@@ -4,7 +4,7 @@ using LostPlanet.ScriptableObjects;
 using LostPlanet.Core;
 using UInput = UnityEngine.Input;
 
-using DG.Tweening; // DOTween punch/flash için
+using DG.Tweening; // DOTween punch/flash iÃ§in
 
 namespace LostPlanet.Gameplay
 {
@@ -12,7 +12,7 @@ namespace LostPlanet.Gameplay
     {
         public const int SlotCount = 3;
 
-        // Slotlar boþluk = null
+        // Slotlar boÅŸluk = null
         public AbilityDefinition[] slots = new AbilityDefinition[SlotCount];
 
         // Shield
@@ -25,7 +25,7 @@ namespace LostPlanet.Gameplay
 
         void OnEnable()
         {
-            // UI'ý baþlangýçta temizle/senkronla
+            // UI'yi baÅŸlangÄ±Ã§ta temizle/senkronla
             Notify();
         }
 
@@ -36,16 +36,16 @@ namespace LostPlanet.Gameplay
 
             for (int i = 0; i < slots.Length; i++)
             {
-                if (slots[i] == null) // boþluk kontrolü
+                if (slots[i] == null) // boÅŸluk kontrolÃ¼
                 {
-                    slots[i] = def; // doðrudan karta referans
+                    slots[i] = def; // doÄŸrudan karta referans
 
-                    var ui = GameManager.Instance ? GameManager.Instance.UIManager : FindObjectOfType<UIManager>();
+                    var ui = LostPlanet.Core.Services.UI;
                     ui?.SetAbilitySlot(i, def.abilityId);
 
-                    // SFX — kart alým sesi (ulaþýlabilir yere taþýndý)
-                    var am = GameManager.Instance ? GameManager.Instance.AudioManager : null;
-                    am?.PlaySfx(am?.pickupSfx);
+                    // SFX â€” kart alÄ±m sesi (ulaÅŸÄ±labilir yere taÅŸÄ±ndÄ±)
+                    var am = LostPlanet.Core.Services.Audio;
+                    am?.PlaySfx(am ? am.pickupSfx : null);
 
                     Debug.Log($"[AbilityInventory] Slot {i} <= {def.abilityId}");
                     return true;
@@ -63,7 +63,7 @@ namespace LostPlanet.Gameplay
             var def = slots[index];
             if (def == null) return;
 
-            // Görsel "punch" ve kýsa flaþ
+            // GÃ¶rsel "punch" ve kÄ±sa flaÅŸ
             transform.DOKill();
             transform.DOPunchScale(Vector3.one * 0.15f, 0.25f, 8, 0.8f);
 
@@ -72,7 +72,7 @@ namespace LostPlanet.Gameplay
 
             StartCoroutine(ActivateRoutine(index, def));
 
-            // Slotu hemen boþalt ve UI'ý güncelle (kart tek kullanýmlýk)
+            // Slotu hemen boÅŸalt ve UI'yÄ± gÃ¼ncelle (kart tek kullanÄ±mlÄ±k)
             slots[index] = null;
             Notify();
         }
@@ -80,23 +80,23 @@ namespace LostPlanet.Gameplay
         IEnumerator ActivateRoutine(int slotIndex, AbilityDefinition def)
         {
             float dur = Mathf.Max(0.01f, def.duration);
-            var am = GameManager.Instance ? GameManager.Instance.AudioManager : null;
+            var am = LostPlanet.Core.Services.Audio;
 
             switch (def.abilityId)
             {
                 case "Shield":
-                    am?.PlaySfx(am?.shieldSfx);
+                    am?.PlaySfx(am ? am.shieldSfx : null);
                     shieldActive = true; shieldUntil = Time.time + dur;
                     yield return StartCoroutine(RunDuration(slotIndex, dur, null, () => shieldActive = false));
                     yield break;
 
                 case "EMP":
-                    am?.PlaySfx(am?.empSfx);
+                    am?.PlaySfx(am ? am.empSfx : null);
                     yield return StartCoroutine(RunDuration(slotIndex, dur, () => EMP_SetDisabled(true), () => EMP_SetDisabled(false)));
                     yield break;
 
                 case "Phase":
-                    am?.PlaySfx(am?.phaseSfx);
+                    am?.PlaySfx(am ? am.phaseSfx : null);
                     phaseActive = true; phaseUntil = Time.time + dur;
                     var col = GetComponent<Collider2D>();
                     bool oldTrigger = col ? col.isTrigger : false;
@@ -109,13 +109,13 @@ namespace LostPlanet.Gameplay
                     yield break;
 
                 case "Bomb":
-                    am?.PlaySfx(am?.bombSfx);
+                    am?.PlaySfx(am ? am.bombSfx : null);
                     DoBomb((int)Mathf.Round(def.power));
                     GameManager.Instance?.UIManager?.SetSlotCooldown01(slotIndex, 0f);
                     yield break;
 
                 case "Freeze":
-                    am?.PlaySfx(am?.freezeSfx);
+                    am?.PlaySfx(am ? am.freezeSfx : null);
                     yield return StartCoroutine(RunDuration(slotIndex, dur, () => Freeze_All(true), () => Freeze_All(false)));
                     yield break;
 
@@ -148,18 +148,14 @@ namespace LostPlanet.Gameplay
         // --- EMP: disable traps
         void EMP_SetDisabled(bool on)
         {
-            var traps = GameObject.FindObjectsOfType<LostPlanet.Interactives.Trap>();
-            foreach (var t in traps) t.SetDisabled(on);
+            foreach (var t in LostPlanet.Interactives.Trap.All) t.SetDisabled(on);
         }
 
         // --- Freeze: freeze enemies & traps
         void Freeze_All(bool on)
         {
-            var enemies = GameObject.FindObjectsOfType<LostPlanet.Enemies.EnemyBase>();
-            foreach (var e in enemies) e.SetFrozen(on);
-
-            var traps = GameObject.FindObjectsOfType<LostPlanet.Interactives.Trap>();
-            foreach (var t in traps) t.SetFrozen(on);
+            foreach (var e in LostPlanet.Enemies.EnemyBase.All) e.SetFrozen(on);
+            foreach (var t in LostPlanet.Interactives.Trap.All) t.SetFrozen(on);
         }
 
         // --- Bomb: AoE clear (Manhattan radius = power)
@@ -187,7 +183,7 @@ namespace LostPlanet.Gameplay
         // ---- UI Senkronizasyonu ----
         void Notify()
         {
-            var ui = GameManager.Instance ? GameManager.Instance.UIManager : FindObjectOfType<UIManager>();
+            var ui = LostPlanet.Core.Services.UI;
             if (ui == null) return;
 
             for (int i = 0; i < SlotCount; i++)

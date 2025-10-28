@@ -1,11 +1,12 @@
 
 using UnityEngine;
 using LostPlanet.GridSystem;
+using System.Collections.Generic;
 
 namespace LostPlanet.Enemies
 {
     public enum EnemyState { Idle, Patrol, Chase, Aim, Shoot, Dead }
-
+    public static readonly List<EnemyBase> All = new List<EnemyBase>();
     public class EnemyBase : GridEntity
     {
         public EnemyState State = EnemyState.Idle;
@@ -29,4 +30,6 @@ namespace LostPlanet.Enemies
 
         public void SetFrozen(bool on){ frozen = on; }
     }
+        protected virtual void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        protected virtual void OnDisable() { All.Remove(this); }
 }
